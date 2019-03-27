@@ -27,32 +27,35 @@ def ratings_per_genre(movies, ratings):
                 genre_avg_per_user2 = genre_ratings2[["userId","rating"]].groupby("userId").mean()
                 genre_avg_per_user = genre_avg_per_user.join(genre_avg_per_user2, rsuffix=g)
       
-        genre_avg_per_user = genre_avg_per_user.rename(index=str, columns={"rating": "rating"+genres[0]}).fillna(0)
+        genre_avg_per_user = genre_avg_per_user.rename(index=str, columns={"rating": "rating"+genres[0]})
 
         #plot 2
         pairs = itertools.combinations(genres, 2)
 
-        for pair in pairs:
-                print(pair)
-                cluster_users(genre_avg_per_user,pair[0], pair[1])
+        for n_clusters in rage(2,7):
+                for pair in pairs:
+                        print(pair)
+                        index0 = "rating"+pair[0]
+                        index1 = "rating"+pair[1]
+                        ratings_per_genre = genre_avg_per_user[[index0,index1]].dropna()
+                        cluster_users(n_custers,ratings_per_genre, index0, index1)
         # X =genre_avg_per_user.values
         # Y = KMeans(n_clusters=2).fit_predict(X)
         # plt.scatter(genre_avg_per_user["ratingHorror"],genre_avg_per_user["ratingComedy"],c=Y,alpha=0.03)
         # plt.show()
 
 
-def cluster_users(ratings_per_genre,genre1, genre2):
+def cluster_users(n,ratings_per_genre,index0, index1):
         # ratings_per_genre =  pd.read_csv("ratings_per_genre_sample.csv")
         X =ratings_per_genre.values
-        Y = KMeans(n_clusters=2).fit_predict(X)
-        x_random_error = np.random.normal(ratings_per_genre["rating"+str(genre1)], 0.2)
-        y_random_error = np.random.normal(ratings_per_genre["rating"+str(genre2)], 0.2)
-        x = ratings_per_genre["rating"+str(genre1)]+x_random_error
-        y = ratings_per_genre["rating"+str(genre2)]+y_random_error
+        Y = KMeans(n_clusters=n).fit_predict(X)
+        x_random_error = np.random.normal(ratings_per_genre[index0], 0.2)
+        y_random_error = np.random.normal(ratings_per_genre[index1], 0.2)
+        x = ratings_per_genre[index0]+x_random_error
+        y = ratings_per_genre[index1]+y_random_error
         plt.scatter(x,y,c=Y)
-        plt.xlabel("Avg "+genre1+" rating")
-        plt.ylabel("Avg "+genre2+" rating")
-        plt.title(genre1+" vs. "+genre2)
+        plt.xlabel("Avg "+index0.split("rating")[1]+" rating")
+        plt.ylabel("Avg "+index1.split("rating")[1]+" rating")
         plt.show()
         
 # cluster_users("Horror", "Comedy")
