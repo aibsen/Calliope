@@ -14,8 +14,12 @@ genres = ["Action","Adventure","Animation","Children's","Comedy","Crime","Docume
         "Thriller",
         "War",
         "Western"]
-movies =  pd.read_csv('movies_sample.csv')
-ratings =  pd.read_csv('ratings_sample.csv')
+movies =  pd.read_csv('../ml-20m/movies.csv')
+ratings =  pd.read_csv('../ml-20m/ratings.csv')
+
+
+# movies =  pd.read_csv('movies_sample.csv')
+# ratings =  pd.read_csv('ratings_sample.csv')
 
 def ratings_per_genre(movies, ratings):
         a = movies[["movieId", "genres"]]
@@ -29,34 +33,93 @@ def ratings_per_genre(movies, ratings):
       
         genre_avg_per_user = genre_avg_per_user.rename(index=str, columns={"rating": "rating"+genres[0]})
 
-        #plot 2
-        pairs = itertools.combinations(genres, 2)
+        plot_clusters(genre_avg_per_user)
 
-        for n_clusters in rage(2,7):
-                for pair in pairs:
+def plot_clusters(genre_avg_per_user):
+        pairs = itertools.combinations(genres, 2)
+        for pair in pairs:
+                for n_clusters in range(2,7):
                         print(pair)
+                        print(n_clusters)
                         index0 = "rating"+pair[0]
                         index1 = "rating"+pair[1]
                         ratings_per_genre = genre_avg_per_user[[index0,index1]].dropna()
-                        cluster_users(n_custers,ratings_per_genre, index0, index1)
-        # X =genre_avg_per_user.values
-        # Y = KMeans(n_clusters=2).fit_predict(X)
-        # plt.scatter(genre_avg_per_user["ratingHorror"],genre_avg_per_user["ratingComedy"],c=Y,alpha=0.03)
-        # plt.show()
+                        cluster_users(n_clusters,ratings_per_genre, index0, index1)
 
 
 def cluster_users(n,ratings_per_genre,index0, index1):
-        # ratings_per_genre =  pd.read_csv("ratings_per_genre_sample.csv")
         X =ratings_per_genre.values
-        Y = KMeans(n_clusters=n).fit_predict(X)
-        x_random_error = np.random.normal(ratings_per_genre[index0], 0.2)
-        y_random_error = np.random.normal(ratings_per_genre[index1], 0.2)
-        x = ratings_per_genre[index0]+x_random_error
-        y = ratings_per_genre[index1]+y_random_error
-        plt.scatter(x,y,c=Y)
-        plt.xlabel("Avg "+index0.split("rating")[1]+" rating")
-        plt.ylabel("Avg "+index1.split("rating")[1]+" rating")
-        plt.show()
+        try:
+                Y = KMeans(n_clusters=n).fit_predict(X)
+                x_random_error = np.random.normal(0, 0.3)
+                y_random_error = np.random.normal(0, 0.3)
+                x = ratings_per_genre[index0]+x_random_error
+                y = ratings_per_genre[index1]+y_random_error
+                plt.scatter(x,y,c=Y)
+                plt.xlabel("Avg "+index0.split("rating")[1]+" rating")
+                plt.ylabel("Avg "+index1.split("rating")[1]+" rating")
+                plt.show()
+        except:
+                print("error!")
+
+def time_vs_rating(ratings_and_genres,genre, frec_or_avg):
+        genred_movies = ratings_and_genres[ratings_and_genres["genres"].str.contains(genre)]
         
-# cluster_users("Horror", "Comedy")
-ratings_per_genre(movies,ratings)
+        plt.title(genre + " movies  during the year")
+        #one movie 
+        #if flag is true, plot frequency of ratings
+        if frec_or_avg:       
+                ratings_per_month = genred_movies.groupby(["movieId","timestamp"])["rating"].count()
+                plt.ylabel("Frequency of ratings")
+
+        #if flag is false, plot avg of ratings
+        else :
+                ratings_per_month = genred_movies.groupby(["movieId","timestamp"])["rating"].mean()
+                plt.ylabel("Avg rating")
+
+
+        movie_ids = list(set( map( lambda x : x[0] ,ratings_per_month.keys().values)))
+        plt.xlabel("Month")
+        for mid in movie_ids:
+                print(mid)
+                movie_ratings_per_month = ratings_per_month.loc[mid]
+                movie_ratings_per_month[movie_ratings_per_month>0]
+                # print(movie_ratings_per_month)
+                x = movie_ratings_per_month.keys().values
+                y = movie_ratings_per_month.values
+                plt.scatter(x,y)
+        plt.show()
+
+def plot_ratings_per_month():
+        ratings['timestamp'] = pd.to_datetime(ratings['timestamp'],unit='s')
+        ratings['timestamp'] = pd.DatetimeIndex(ratings['timestamp']).month
+        a = movies[["movieId", "genres"]]
+        ratings_and_genres = ratings.set_index('movieId').join(a.set_index('movieId'))
+        for g in genres:
+                #frequency
+                time_vs_rating(ratings_and_genres,g,True)
+                #average
+                time_vs_rating(ratings_and_genres,g,False)
+
+
+def frequency_over_time():
+        ratings['timestamp'] = pd.to_datetime(ratings['timestamp'],unit='s')
+        ratings['timestamp'] = pd.DatetimeIndex(ratings['timestamp']).month
+        a = movies[["movieId", "genres"]]
+        ratings_and_genres = ratings.set_index('movieId').join(a.set_index('movieId'))
+        # plt.title("movies during the year")
+        ratings_per_month = ratings_and_genres.groupby(["movieId","timestamp"])["rating"].count()
+        plt.ylabel("Frequency of ratings")
+        movie_ids = list(set( map( lambda x : x[0] ,ratings_per_month.keys().values)))
+        plt.xlabel("Month")
+        for mid in movie_ids[100]:
+                print(mid)
+                movie_ratings_per_month = ratings_per_month.loc[mid]
+                movie_ratings_per_month[movie_ratings_per_month>0]
+                # print(movie_ratings_per_month)
+                x = movie_ratings_per_month.keys().values
+                y = movie_ratings_per_month.values
+                plt.scatter(x,y)
+        plt.show()
+
+frequency_over_time()
